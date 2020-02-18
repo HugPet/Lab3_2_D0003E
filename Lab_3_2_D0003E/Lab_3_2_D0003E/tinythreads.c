@@ -60,9 +60,8 @@ static void putFirst(thread p, thread *queue) {
 		*queue = p;
 	} else {	
 		thread q = *queue;
-		thread m = q->next;
-		p = q->next;
-		p->next = m;
+		*queue = p;
+		p->next = q;
 	}
 }
 
@@ -130,7 +129,7 @@ void lock(mutex *m) {
 	DISABLE();
 	if(m->locked == 0) m->locked = 1;
 	else {
-		enqueue(current,&m->waitQ);
+		enqueue(current,&(m->waitQ));
 		dispatch(dequeue(&readyQ));
 	}
 	ENABLE();
@@ -142,7 +141,7 @@ void unlock(mutex *m) {
 		m->locked = 0;
 		} else {
 		enqueue(current,&readyQ);
-		dispatch(dequeue(&m->waitQ));
+		dispatch(dequeue(&(m->waitQ)));
 	}
 	ENABLE();
 }

@@ -21,46 +21,45 @@ bool is_prime(long i);
 int writeReg(int num, int reg, bool shift);
 int main(void);
 
-uint16_t lastTime = 0;
 
+bool switchLight = false;
 
 void button() {
-	lock(&but);
 	unsigned char i;
-	i = (PINB & 0x80);
-	if (i != 0x80) {
-		LCDDR2 |= 0x06;
-	} else {
-		LCDDR2 |= 0x60;
+	while(1) {
+		lock(&but);
+		i = (PINB & 0x80);
+		if (i != 0x80) {
+			LCDDR2 &= 0x9F;
+			LCDDR2 |= 0x06;
+		} else {
+			LCDDR2 &= 0xF9;
+			LCDDR2 |= 0x60;
+		}
 	}
 }
 
 void blink() {
-	lock(&bli);
-	uint16_t timer = (TCNT1 - lastTime);
-	//writeLong(timer);
-	if (timer <= 0x1E84) {  // if the clock has come to the time set, turn on the segment. (0x7A12)
-		LCDDR0 = 0x6;
-	}
-	else if(timer > 0x1E84) {  // if the clock has come to two times the time set, turn off segment. (0xF424)
-		LCDDR0 = 0x0;
-		//writeLong(111111);
-		lastTime = timer;
+	while(1) {
+		lock(&bli);
+		if (switchLight) {
+			LCDDR0 &= 0xF9;
+			LCDDR0 |= 0x6;
+		}
+		else {
+			LCDDR0 &= 0xF9;
+		}
 	}
 }
 ISR(TIMER1_COMPA_vect){
-	writeLong(111111);
+	switchLight = !switchLight;
 	unlock(&bli);
 	yield();
 }
 
 ISR(PCINT1_vect){
-	char i = PINB & 0x80;
-	if (i != 0x80) {
-		LCDDR0 = 0x0;
-		unlock(&but);
-		yield();
-	}
+	unlock(&but);
+	yield();
 }
 
 
@@ -216,13 +215,13 @@ int writeChar(char ch, int pos){
 		LCDDR16 = writeReg(SCC_X_3, LCDDR16, true);
 		break;
 	case 4:
-		LCDDR2 = writeReg(SCC_X_0, LCDDR2, false);
+		LCDDR2 |= writeReg(SCC_X_0, LCDDR2, false);
 		LCDDR7 = writeReg(SCC_X_1, LCDDR7, false);
 		LCDDR12 = writeReg(SCC_X_2, LCDDR12, false);
 		LCDDR17 = writeReg(SCC_X_3, LCDDR17, false);
 		break;
 	case 5:
-		LCDDR2 = writeReg(SCC_X_0, LCDDR2, true);
+		LCDDR2 |= writeReg(SCC_X_0, LCDDR2, true);
 		LCDDR7 = writeReg(SCC_X_1, LCDDR7, true);
 		LCDDR12 = writeReg(SCC_X_2, LCDDR12, true);
 		LCDDR17 = writeReg(SCC_X_3, LCDDR17, true);
