@@ -139,7 +139,7 @@ void unlock(mutex *m) {
 	DISABLE();
 	if (m->waitQ == NULL){
 		m->locked = 0;
-		} else {
+	} else {
 		enqueue(current,&readyQ);
 		dispatch(dequeue(&(m->waitQ)));
 	}

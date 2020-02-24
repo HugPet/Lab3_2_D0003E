@@ -1,10 +1,5 @@
 
-/*
- * Lab1.c
- *
- * Created: 2020-01-22 10:12:27
- * Author : josvil-8
- */ 
+ 
 #include <avr/interrupt.h>
 #include <avr/io.h>
 #include <stdlib.h>
@@ -23,18 +18,30 @@ int main(void);
 
 
 bool switchLight = false;
+long numbPress = 0;
+bool toggle = false;
+
+void printAt(long num, int pos) {
+	int pp = pos;
+	writeChar( (num % 100) / 10 + '0', pp);
+	pp++;
+	writeChar( num % 10 + '0', pp);
+}
 
 void button() {
 	unsigned char i;
 	while(1) {
 		lock(&but);
+		printAt(numbPress, 4);
 		i = (PINB & 0x80);
 		if (i != 0x80) {
-			LCDDR2 &= 0x9F;
-			LCDDR2 |= 0x06;
-		} else {
-			LCDDR2 &= 0xF9;
-			LCDDR2 |= 0x60;
+			if(toggle) {
+				LCDDR2 &= 0x9F;
+				LCDDR2 |= 0x06;
+			} else {
+				LCDDR2 &= 0xF9;
+				LCDDR2 |= 0x60;
+			}
 		}
 	}
 }
@@ -54,12 +61,17 @@ void blink() {
 ISR(TIMER1_COMPA_vect){
 	switchLight = !switchLight;
 	unlock(&bli);
-	yield();
+	//yield();
 }
 
 ISR(PCINT1_vect){
+	int i = PINB & 0x80;
+	if (i != 0x80) {
+		numbPress++;
+		toggle = !toggle;
+	}
 	unlock(&but);
-	yield();
+	//yield();
 }
 
 
@@ -71,7 +83,9 @@ int main(void)
 
 	lock(&bli); lock(&but);
 	spawn(blink, 1);
+	yield();
 	spawn(button, 2);
+	yield();
 	primes();
 }
 
@@ -98,7 +112,7 @@ void writeLong(long i) {
 void primes() {
 	for(long count=0; count < 50000; count+= 1) {
 		if (is_prime(count))
-			writeLong(count);
+			printAt(count, 0);
 	}
 }
 
@@ -191,12 +205,14 @@ int writeChar(char ch, int pos){
 														   the lower byte of the register or not, since the positions are paired up 
 														   per register. */
 	case 0:
+		LCDDR0 &= 0xF6;
 		LCDDR0 |=writeReg(SCC_X_0, LCDDR0, false);
 		LCDDR5=writeReg(SCC_X_1, LCDDR5, false);
 		LCDDR10=writeReg(SCC_X_2, LCDDR10, false);
 		LCDDR15=writeReg(SCC_X_3, LCDDR15, false);		
 		break;
 	case 1:
+		LCDDR0 &= 0x6F;
 		LCDDR0 |=writeReg(SCC_X_0, LCDDR0, true);
 		LCDDR5=writeReg(SCC_X_1, LCDDR5, true);
 		LCDDR10=writeReg(SCC_X_2, LCDDR10, true);
@@ -215,12 +231,14 @@ int writeChar(char ch, int pos){
 		LCDDR16 = writeReg(SCC_X_3, LCDDR16, true);
 		break;
 	case 4:
+		LCDDR2 &= 0xF6;
 		LCDDR2 |= writeReg(SCC_X_0, LCDDR2, false);
 		LCDDR7 = writeReg(SCC_X_1, LCDDR7, false);
 		LCDDR12 = writeReg(SCC_X_2, LCDDR12, false);
 		LCDDR17 = writeReg(SCC_X_3, LCDDR17, false);
 		break;
 	case 5:
+		LCDDR2 &= 0x6F;
 		LCDDR2 |= writeReg(SCC_X_0, LCDDR2, true);
 		LCDDR7 = writeReg(SCC_X_1, LCDDR7, true);
 		LCDDR12 = writeReg(SCC_X_2, LCDDR12, true);
